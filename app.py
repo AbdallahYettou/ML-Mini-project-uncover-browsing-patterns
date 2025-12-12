@@ -380,23 +380,7 @@ with tab1:
             placeholder="Start typing to search..."
         )
         
-        st.markdown("**⚡ Quick Examples:**")
-        col_a, col_b, col_c = st.columns(3)
-        
-        with col_a:
-            if st.button("🚀 Apollo History", use_container_width=True):
-                st.session_state['pred_example'] = ['/history/apollo']
-        with col_b:
-            if st.button("🛸 Shuttle Countdown", use_container_width=True):
-                st.session_state['pred_example'] = ['/shuttle/countdown']
-        with col_c:
-            if st.button("🛰️ ELV Rockets", use_container_width=True):
-                st.session_state['pred_example'] = ['/elv']
-        
-        if 'pred_example' in st.session_state:
-            selected_paths = st.session_state['pred_example']
-            del st.session_state['pred_example']
-            st.rerun()
+      
     
     with col2:
         top_n = st.slider(
@@ -611,15 +595,7 @@ with tab4:
     else:
         st.warning("No FP-Growth rules available.")
 
-# ======================== TAB 5: NETWORK GRAPH ========================
 
 
 
-# Footer
-st.markdown("---")
-st.markdown("""
-<div class="footer-text">
-    <p>🔍 <strong>Web Usage Mining Dashboard</strong> | Powered by AI Association Rules</p>
-    <p>📊 Data: NASA Web Server Logs | ⚡ Algorithms: Apriori & FP-Growth</p>
-</div>
-""", unsafe_allow_html=True)
+
