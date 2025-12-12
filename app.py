@@ -239,14 +239,14 @@ def load_precomputed_rules():
     fp_rules = pd.DataFrame()
     
     try:
-        apriori_rules = pd.read_csv('/Data/apriori/apriori_rules.csv')
+        apriori_rules = pd.read_csv('./Data/apriori/apriori_rules.csv')
         apriori_rules['antecedents'] = apriori_rules['antecedents'].apply(parse_frozenset)
         apriori_rules['consequents'] = apriori_rules['consequents'].apply(parse_frozenset)
     except FileNotFoundError:
         st.warning("apriori_rules.csv not found!")
     
     try:
-        fp_rules = pd.read_csv('/Data/apriori/apriori_rules.csv')
+        fp_rules = pd.read_csv('./Data/fp_growth/fp_rules.csv')
         fp_rules['antecedents'] = fp_rules['antecedents'].apply(parse_frozenset)
         fp_rules['consequents'] = fp_rules['consequents'].apply(parse_frozenset)
     except FileNotFoundError:
