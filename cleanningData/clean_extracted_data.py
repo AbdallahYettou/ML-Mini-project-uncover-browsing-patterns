@@ -28,20 +28,7 @@ NOISE_PATHS = {
     '/media',
 }
 
-# Path prefixes to filter out
-NOISE_PREFIXES = [
-    '/images/',
-    '/icons/',
-    '/htbin/',
-    '/cgi-bin/',
-    '/cgi/',
-    '/static/',
-    '/assets/',
-    '/css/',
-    '/js/',
-    '/fonts/',
-    '/media/',
-]
+
 
 
 def is_noise_path(path):
@@ -55,10 +42,7 @@ def is_noise_path(path):
         return True
     
     # Check prefixes
-    for prefix in NOISE_PREFIXES:
-        if path.startswith(prefix):
-            return True
-    
+ 
     return False
 
 
@@ -122,8 +106,8 @@ def main():
     Main function to clean extracted log data.
     Reads from extracted_logs.csv and writes to cleaned_data.csv
     """
-    input_file = 'extracted_logs.csv'
-    output_file = 'cleaned_data.csv'
+    input_file = 'Data/extractedAndcleanedData/extracted_logs.csv'
+    output_file = 'Data/extractedAndcleanedData/cleaned_data.csv'
     
     print(f"Reading from {input_file}...")
     
@@ -168,3 +152,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -1,16 +1,8 @@
-"""
-extract_logs.py
-Extracts raw data from NASA access log files and saves to CSV.
-This file only does extraction - no cleaning or filtering.
-"""
 
 import re
 
 def process_log_file(filename, limit=None):
-    """
-    Process a NASA access log file and extract raw session data.
-    Returns a dictionary mapping hosts to their list of paths.
-    """
+ 
     sessions = {}
     try:
         with open(filename, 'r', encoding='utf-8', errors='ignore') as f:
@@ -43,11 +35,9 @@ def process_log_file(filename, limit=None):
 
 
 def main():
-    """
-    Main function to extract data from log files and save to CSV.
-    """
-    files = ['access_log_Aug95', 'access_log_Jul95']
-    output_file = 'extracted_logs.csv'
+  
+    files = ['Data/Logs/access_log_Aug95', 'Data/Logs/access_log_Aug95']
+    output_file = 'Data/extractedAndcleanedData/extracted_logs.csv'
     all_sessions = {}
 
     for filename in files:

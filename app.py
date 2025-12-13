@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Premium CSS styling
+
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -234,65 +234,94 @@ def parse_frozenset(frozenset_str):
 
 @st.cache_data
 def load_precomputed_rules():
-    """Load pre-computed rules from CSV files"""
+    """Load pre-computed rules from CSV files (Apriori, FP-Growth, ECLAT)"""
     apriori_rules = pd.DataFrame()
     fp_rules = pd.DataFrame()
+    eclat_rules = pd.DataFrame()
     
     try:
         apriori_rules = pd.read_csv('./Data/apriori/apriori_rules.csv')
-        apriori_rules['antecedents'] = apriori_rules['antecedents'].apply(parse_frozenset)
-        apriori_rules['consequents'] = apriori_rules['consequents'].apply(parse_frozenset)
+        if 'antecedents' in apriori_rules.columns:
+            apriori_rules['antecedents'] = apriori_rules['antecedents'].apply(parse_frozenset)
+        if 'consequents' in apriori_rules.columns:
+            apriori_rules['consequents'] = apriori_rules['consequents'].apply(parse_frozenset)
     except FileNotFoundError:
         st.warning("apriori_rules.csv not found!")
+    except Exception as e:
+        st.error(f"Error loading apriori rules: {e}")
     
     try:
         fp_rules = pd.read_csv('./Data/fp_growth/fp_rules.csv')
-        fp_rules['antecedents'] = fp_rules['antecedents'].apply(parse_frozenset)
-        fp_rules['consequents'] = fp_rules['consequents'].apply(parse_frozenset)
+        if 'antecedents' in fp_rules.columns:
+            fp_rules['antecedents'] = fp_rules['antecedents'].apply(parse_frozenset)
+        if 'consequents' in fp_rules.columns:
+            fp_rules['consequents'] = fp_rules['consequents'].apply(parse_frozenset)
     except FileNotFoundError:
         st.warning("fp_rules.csv not found!")
+    except Exception as e:
+        st.error(f"Error loading fp-growth rules: {e}")
     
-    return apriori_rules, fp_rules
+    try:
+        eclat_rules = pd.read_csv('./Data/ECLAT/ECLAT_rules.csv')
+        if 'antecedents' in eclat_rules.columns:
+            eclat_rules['antecedents'] = eclat_rules['antecedents'].apply(parse_frozenset)
+        if 'consequents' in eclat_rules.columns:
+            eclat_rules['consequents'] = eclat_rules['consequents'].apply(parse_frozenset)
+    except FileNotFoundError:
+        st.warning("ECLAT_rules.csv not found in Data/ECLAT/")
+    except Exception as e:
+        st.error(f"Error loading ECLAT rules: {e}")
+    
+    return apriori_rules, fp_rules, eclat_rules
 
 
 @st.cache_data
-def get_all_paths(apriori_rules, fp_rules):
+def get_all_paths(apriori_rules, fp_rules, eclat_rules):
     """Extract all unique paths from rules"""
     all_paths = set()
-    
-    for df in [apriori_rules, fp_rules]:
-        if len(df) > 0:
+    for df in [apriori_rules, fp_rules, eclat_rules]:
+        if (df is not None) and (len(df) > 0):
             for s in df['antecedents']:
                 all_paths.update(s)
             for s in df['consequents']:
                 all_paths.update(s)
-    
     return sorted(list(all_paths))
 
 
+# get_predictions remains the same logic and works for any rule dataframe
+
 def get_predictions(user_paths, rules_df, top_n=20):
     """Get page predictions based on user's browsing session"""
-    if not user_paths or len(rules_df) == 0:
+    if not user_paths or rules_df is None or len(rules_df) == 0:
         return pd.DataFrame()
     
     user_set = set(user_paths)
     predictions = {}
     
     for _, rule in rules_df.iterrows():
-        antecedents = rule['antecedents']
-        consequents = rule['consequents']
+        antecedents = rule.get('antecedents', frozenset())
+        consequents = rule.get('consequents', frozenset())
+        # skip malformed rows
+        if not antecedents or not isinstance(antecedents, (set, frozenset)):
+            continue
+        if not consequents or not isinstance(consequents, (set, frozenset)):
+            continue
         
         if antecedents and antecedents.issubset(user_set):
-            score = rule['confidence'] * (1 + (rule['lift'] - 1) * 0.1)
+            # build a score that prefers higher confidence and slightly rewards lift
+            confidence = float(rule.get('confidence', 0))
+            lift = float(rule.get('lift', 1))
+            support = float(rule.get('support', 0))
+            score = confidence * (1 + (lift - 1) * 0.1)
             
             for page in consequents:
                 if page not in user_set:
                     if page not in predictions or score > predictions[page]['score']:
                         predictions[page] = {
                             'score': score,
-                            'confidence': rule['confidence'],
-                            'lift': rule['lift'],
-                            'support': rule['support'],
+                            'confidence': confidence,
+                            'lift': lift,
+                            'support': support,
                             'based_on': ', '.join(sorted(antecedents))
                         }
     
@@ -322,11 +351,11 @@ st.markdown('<p class="sub-header">AI-Powered Navigation Pattern Analysis with A
 
 # Load pre-computed rules
 with st.spinner("Loading pre-computed association rules..."):
-    apriori_rules, fp_rules = load_precomputed_rules()
-    all_paths = get_all_paths(apriori_rules, fp_rules)
+    apriori_rules, fp_rules, eclat_rules = load_precomputed_rules()
+    all_paths = get_all_paths(apriori_rules, fp_rules, eclat_rules)
 
-if len(apriori_rules) == 0 and len(fp_rules) == 0:
-    st.error("No rules loaded. Please ensure apriori_rules.csv and/or fp_rules.csv exist in the project directory.")
+if len(apriori_rules) == 0 and len(fp_rules) == 0 and len(eclat_rules) == 0:
+    st.error("No rules loaded. Please ensure apriori_rules.csv, fp_rules.csv and/or ECLAT_rules.csv exist in the project directory under Data/")
     st.stop()
 
 # ======================== SIDEBAR ========================
@@ -334,27 +363,30 @@ if len(apriori_rules) == 0 and len(fp_rules) == 0:
 st.sidebar.markdown("## 📊 Model Statistics")
 st.sidebar.metric("Apriori Rules", f"{len(apriori_rules):,}")
 st.sidebar.metric("FP-Growth Rules", f"{len(fp_rules):,}")
+st.sidebar.metric("ECLAT Rules", f"{len(eclat_rules):,}")
 st.sidebar.metric("Unique Paths", f"{len(all_paths):,}")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("## ⚙️ Settings")
 
+max_possible = max(len(apriori_rules), len(fp_rules), len(eclat_rules), 1)
 max_rules_display = st.sidebar.slider(
     "Max Rules to Display",
     min_value=10,
-    max_value=max(len(apriori_rules), len(fp_rules), 1000),
-    value=min(500, max(len(apriori_rules), len(fp_rules))),
+    max_value=max(max_possible, 1000),
+    value=min(500, max(max_possible, 10)),
     step=10
 )
 
 
 # ======================== TABS ========================
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🔮 Prediction", 
     "⚔️ Comparison", 
     "🔵 Apriori Rules", 
-    "🟣 FP-Growth Rules"
+    "🟣 FP-Growth Rules",
+    "🟢 ECLAT Rules"
 ])
 
 # ======================== TAB 1: PREDICTION ========================
@@ -368,11 +400,11 @@ with tab1:
     with col1:
         algorithm = st.radio(
             "Select Algorithm",
-            ["Apriori", "FP-Growth"],
+            ["Apriori", "FP-Growth", "ECLAT"],
             horizontal=True
         )
         
-        rules_for_prediction = apriori_rules if algorithm == "Apriori" else fp_rules
+        rules_for_prediction = apriori_rules if algorithm == "Apriori" else (fp_rules if algorithm == "FP-Growth" else eclat_rules)
         
         selected_paths = st.multiselect(
             "🔍 Select visited pages:",
@@ -450,7 +482,7 @@ with tab1:
 with tab2:
     st.markdown("## ⚔️ Algorithm Battle")
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         st.markdown("### 🔵 Apriori")
@@ -468,19 +500,35 @@ with tab2:
             st.metric("Avg Lift", f"{fp_rules['lift'].mean():.3f}")
             st.metric("Max Lift", f"{fp_rules['lift'].max():.3f}")
     
+    with col3:
+        st.markdown("### 🟢 ECLAT")
+        if len(eclat_rules) > 0:
+            # ECLAT rules may not always have confidence/lift columns depending on how they were exported
+            conf_mean = eclat_rules['confidence'].mean() if 'confidence' in eclat_rules.columns else float('nan')
+            lift_mean = eclat_rules['lift'].mean() if 'lift' in eclat_rules.columns else float('nan')
+            lift_max = eclat_rules['lift'].max() if 'lift' in eclat_rules.columns else float('nan')
+            st.metric("Total Rules", f"{len(eclat_rules):,}")
+            st.metric("Avg Confidence", f"{conf_mean:.3f}")
+            st.metric("Avg Lift", f"{lift_mean:.3f}")
+            st.metric("Max Lift", f"{lift_max:.3f}")
+    
     st.markdown("---")
     
     # Comparison chart
-    if len(apriori_rules) > 0 and len(fp_rules) > 0:
+    if len(apriori_rules) > 0 and len(fp_rules) > 0 and len(eclat_rules) > 0:
         comparison_data = pd.DataFrame({
             'Metric': ['Total Rules', 'Avg Confidence', 'Avg Lift', 'Max Lift'],
             'Apriori': [len(apriori_rules), apriori_rules['confidence'].mean(), apriori_rules['lift'].mean(), apriori_rules['lift'].max()],
-            'FP-Growth': [len(fp_rules), fp_rules['confidence'].mean(), fp_rules['lift'].mean(), fp_rules['lift'].max()]
+            'FP-Growth': [len(fp_rules), fp_rules['confidence'].mean(), fp_rules['lift'].mean(), fp_rules['lift'].max()],
+            'ECLAT': [len(eclat_rules), eclat_rules['confidence'].mean() if 'confidence' in eclat_rules.columns else float('nan'), 
+                      eclat_rules['lift'].mean() if 'lift' in eclat_rules.columns else float('nan'),
+                      eclat_rules['lift'].max() if 'lift' in eclat_rules.columns else float('nan')]
         })
         
         fig = go.Figure()
-        fig.add_trace(go.Bar(name='Apriori', x=comparison_data['Metric'], y=comparison_data['Apriori'], marker_color='#00d4ff'))
-        fig.add_trace(go.Bar(name='FP-Growth', x=comparison_data['Metric'], y=comparison_data['FP-Growth'], marker_color='#7c3aed'))
+        fig.add_trace(go.Bar(name='Apriori', x=comparison_data['Metric'], y=comparison_data['Apriori']))
+        fig.add_trace(go.Bar(name='FP-Growth', x=comparison_data['Metric'], y=comparison_data['FP-Growth']))
+        fig.add_trace(go.Bar(name='ECLAT', x=comparison_data['Metric'], y=comparison_data['ECLAT']))
         fig.update_layout(
             barmode='group',
             plot_bgcolor='rgba(0,0,0,0)',
@@ -493,7 +541,7 @@ with tab2:
     
     st.markdown("### 🏆 Top Rules Comparison")
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         if len(apriori_rules) > 0:
@@ -510,6 +558,18 @@ with tab2:
             top_fp['antecedents'] = top_fp['antecedents'].apply(lambda x: ', '.join(sorted(x)))
             top_fp['consequents'] = top_fp['consequents'].apply(lambda x: ', '.join(sorted(x)))
             st.dataframe(top_fp, use_container_width=True, hide_index=True)
+    
+    with col3:
+        if len(eclat_rules) > 0:
+            st.markdown("#### ECLAT Top 10")
+            # ECLAT exports may not have the exact same columns; try to display the common ones
+            columns_to_show = [c for c in ['antecedents', 'consequents', 'support', 'confidence', 'lift'] if c in eclat_rules.columns]
+            top_eclat = eclat_rules.head(10)[columns_to_show].copy()
+            if 'antecedents' in top_eclat.columns:
+                top_eclat['antecedents'] = top_eclat['antecedents'].apply(lambda x: ', '.join(sorted(x)))
+            if 'consequents' in top_eclat.columns:
+                top_eclat['consequents'] = top_eclat['consequents'].apply(lambda x: ', '.join(sorted(x)))
+            st.dataframe(top_eclat, use_container_width=True, hide_index=True)
 
 # ======================== TAB 3: APRIORI RULES ========================
 
@@ -595,7 +655,60 @@ with tab4:
     else:
         st.warning("No FP-Growth rules available.")
 
+# ======================== TAB 5: ECLAT RULES ========================
 
-
+with tab5:
+    st.markdown("## 🟢 ECLAT Association Rules")
+    
+    if len(eclat_rules) > 0:
+        st.markdown("### 📈 Support vs Confidence")
+        plot_rules_eclat = eclat_rules.copy()
+        # only add string columns if antecedents/consequents exist
+        if 'antecedents' in plot_rules_eclat.columns:
+            plot_rules_eclat['antecedents_str'] = plot_rules_eclat['antecedents'].apply(lambda x: ', '.join(sorted(x)))
+        if 'consequents' in plot_rules_eclat.columns:
+            plot_rules_eclat['consequents_str'] = plot_rules_eclat['consequents'].apply(lambda x: ', '.join(sorted(x)))
+        
+        # some ECLAT exports may not include confidence/lift; guard against missing columns
+        x_col = 'support' if 'support' in plot_rules_eclat.columns else (plot_rules_eclat.columns[0] if len(plot_rules_eclat.columns)>0 else None)
+        y_col = 'confidence' if 'confidence' in plot_rules_eclat.columns else (plot_rules_eclat.columns[0] if len(plot_rules_eclat.columns)>0 else None)
+        size_col = 'lift' if 'lift' in plot_rules_eclat.columns else None
+        color_col = 'lift' if 'lift' in plot_rules_eclat.columns else None
+        
+        # Create scatter only if we have at least x and y
+        if x_col and y_col:
+            fig = px.scatter(
+                plot_rules_eclat,
+                x=x_col,
+                y=y_col,
+                size=size_col,
+                color=color_col,
+                hover_data=[c for c in ['antecedents_str', 'consequents_str'] if c in plot_rules_eclat.columns],
+                title='<b>Rule Distribution</b>'
+            )
+            fig.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font=dict(color='white'),
+                height=500
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        
+        st.markdown(f"### 📋 All Rules (showing {min(max_rules_display, len(eclat_rules)):,} of {len(eclat_rules):,})")
+        rules_display_eclat = eclat_rules.head(max_rules_display).copy()
+        if 'antecedents' in rules_display_eclat.columns:
+            rules_display_eclat['antecedents'] = rules_display_eclat['antecedents'].apply(lambda x: ', '.join(sorted(x)))
+        if 'consequents' in rules_display_eclat.columns:
+            rules_display_eclat['consequents'] = rules_display_eclat['consequents'].apply(lambda x: ', '.join(sorted(x)))
+        
+        # show common columns only
+        columns_to_show = [c for c in ['antecedents', 'consequents', 'support', 'confidence', 'lift'] if c in rules_display_eclat.columns]
+        st.dataframe(
+            rules_display_eclat[columns_to_show].sort_values('lift', ascending=False) if 'lift' in rules_display_eclat.columns else rules_display_eclat[columns_to_show],
+            use_container_width=True,
+            hide_index=True
+        )
+    else:
+        st.warning("No ECLAT rules available. Put ECLAT_rules.csv in Data/ECLAT/")
 
 

@@ -4,9 +4,9 @@
 
 ## **1. Introduction**
 
-Web server log files, such as the NASA HTTP logs from July and August 1995, are rich sources of behavioral information that can be used to uncover browsing patterns, session flows, and frequently co-accessed pages. However, the raw log files are *not* directly usable for analysis. They contain unstructured text, inconsistent fields, missing values, and a format that requires parsing before any meaningful machine learning or statistics can be applied.
+Web server log files, such as the NASA HTTP logs from July and August 1995, are rich sources of behavioral information that can be used to uncover browsing patterns, session flows, and frequently co-accessed pages. However, the raw log files are not directly usable for analysis. They contain unstructured text, inconsistent fields, missing values, and a format that requires parsing before any meaningful machine learning or statistics can be applied.
 
-To address these challenges, a dedicated **preprocessing pipeline** is required. This phase converts raw logs into clean, structured, and enriched data suitable for downstream tasks such as sessionization, association rule mining (Apriori), and clustering.
+To address these challenges, a dedicated **preprocessing pipeline** is required. This phase converts raw logs into clean, structured, and enriched data suitable for downstream tasks such as sessionization, association rule mining, and clustering.
 
 ---
 
@@ -331,22 +331,6 @@ After processing both log files, the following statistics were obtained:
 
 Each line represents one user session with comma-separated page paths, ready for use with association rule mining algorithms.
 
----
-
-## **5. Usage with Association Rule Mining**
-
-The output file `perproccing.csv` is directly compatible with:
-
-- **Apriori algorithm** — to find frequent itemsets of co-visited pages
-- **FP-Growth algorithm** — for efficient frequent pattern mining
-- **Sequential pattern mining** — to discover common navigation sequences
-
-These algorithms can reveal insights such as:
-- Pages that are frequently visited together
-- Common navigation paths through the website
-- Potential candidates for link recommendations
-
----
 
 ## **6. Conclusion**
 

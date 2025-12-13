@@ -2,4 +2,4 @@ venv/
 *.log
 Data/Logs/
 Data/extractedAndcleanedData/
-
+repport.md
