@@ -381,12 +381,13 @@ max_rules_display = st.sidebar.slider(
 
 # ======================== TABS ========================
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    " Prediction", 
-    " Comparison", 
-    " Apriori Rules", 
-    " FP-Growth Rules",
-    " ECLAT Rules"
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    "🔮 Prediction", 
+    "⚔️ Comparison", 
+    "📊 Apriori Rules", 
+    "🌳 FP-Growth Rules",
+    "⚡ ECLAT Rules",
+    "🕸️ Network Graph"
 ])
 
 # ======================== TAB 1: PREDICTION ========================
@@ -701,5 +702,175 @@ with tab5:
         )
     else:
         st.warning("No ECLAT rules available. Put ECLAT_rules.csv in Data/ECLAT/")
+
+# ======================== TAB 6: NETWORK GRAPH ========================
+
+with tab6:
+    st.markdown("## 🕸️ Association Rules Network Graph")
+    st.markdown("Visualize how pages are connected based on association rules.")
+    
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
+    with col1:
+        network_algo = st.selectbox(
+            "Select Algorithm",
+            ["Apriori", "FP-Growth", "ECLAT"],
+            key="network_algo"
+        )
+    
+    with col2:
+        min_lift_filter = st.slider(
+            "Minimum Lift",
+            min_value=1.0,
+            max_value=50.0,
+            value=5.0,
+            step=0.5,
+            key="min_lift_network"
+        )
+    
+    with col3:
+        max_nodes = st.slider(
+            "Max Nodes",
+            min_value=10,
+            max_value=100,
+            value=30,
+            step=5,
+            key="max_nodes"
+        )
+    
+    # Select rules based on algorithm
+    if network_algo == "Apriori":
+        rules_for_network = apriori_rules
+    elif network_algo == "FP-Growth":
+        rules_for_network = fp_rules
+    else:
+        rules_for_network = eclat_rules
+    
+    if len(rules_for_network) > 0 and 'lift' in rules_for_network.columns:
+        # Filter rules by lift
+        filtered_rules = rules_for_network[rules_for_network['lift'] >= min_lift_filter].copy()
+        
+        if len(filtered_rules) > 0:
+            # Build network graph
+            G = nx.DiGraph()
+            
+            # Add edges from rules
+            edge_weights = {}
+            for _, rule in filtered_rules.iterrows():
+                antecedents = rule.get('antecedents', frozenset())
+                consequents = rule.get('consequents', frozenset())
+                lift = float(rule.get('lift', 1))
+                confidence = float(rule.get('confidence', 0))
+                
+                if antecedents and consequents:
+                    for ant in antecedents:
+                        for cons in consequents:
+                            if (ant, cons) not in edge_weights or edge_weights[(ant, cons)] < lift:
+                                edge_weights[(ant, cons)] = lift
+                                G.add_edge(ant, cons, weight=lift, confidence=confidence)
+            
+            # Limit nodes to max_nodes (keep highest degree nodes)
+            if len(G.nodes()) > max_nodes:
+                node_degrees = dict(G.degree())
+                top_nodes = sorted(node_degrees.keys(), key=lambda x: node_degrees[x], reverse=True)[:max_nodes]
+                G = G.subgraph(top_nodes).copy()
+            
+            if len(G.nodes()) > 0:
+                # Create layout
+                pos = nx.spring_layout(G, k=2, iterations=50, seed=42)
+                
+                # Create edge traces
+                edge_x = []
+                edge_y = []
+                for edge in G.edges():
+                    x0, y0 = pos[edge[0]]
+                    x1, y1 = pos[edge[1]]
+                    edge_x.extend([x0, x1, None])
+                    edge_y.extend([y0, y1, None])
+                
+                edge_trace = go.Scatter(
+                    x=edge_x, y=edge_y,
+                    line=dict(width=1, color='rgba(125, 125, 125, 0.5)'),
+                    hoverinfo='none',
+                    mode='lines'
+                )
+                
+                # Create node traces
+                node_x = [pos[node][0] for node in G.nodes()]
+                node_y = [pos[node][1] for node in G.nodes()]
+                node_degrees = [G.degree(node) for node in G.nodes()]
+                
+                # Shorten node labels for display
+                node_labels = [n.split('/')[-1] if '/' in n else n for n in G.nodes()]
+                node_full_labels = list(G.nodes())
+                
+                node_trace = go.Scatter(
+                    x=node_x, y=node_y,
+                    mode='markers+text',
+                    hoverinfo='text',
+                    text=node_labels,
+                    textposition='top center',
+                    textfont=dict(size=10, color='white'),
+                    hovertext=[f"{full}<br>Connections: {deg}" for full, deg in zip(node_full_labels, node_degrees)],
+                    marker=dict(
+                        showscale=True,
+                        colorscale='Viridis',
+                        size=[10 + deg * 3 for deg in node_degrees],
+                        color=node_degrees,
+                        colorbar=dict(
+                            thickness=15,
+                            title='Connections',
+                            xanchor='left',
+                            titleside='right'
+                        ),
+                        line=dict(width=2, color='white')
+                    )
+                )
+                
+                # Create figure
+                fig = go.Figure(data=[edge_trace, node_trace],
+                    layout=go.Layout(
+                        title=f'<b>Page Network ({network_algo})</b><br>Lift ≥ {min_lift_filter}',
+                        titlefont=dict(size=16, color='white'),
+                        showlegend=False,
+                        hovermode='closest',
+                        margin=dict(b=20, l=5, r=5, t=60),
+                        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        height=600
+                    )
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Show stats
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Nodes (Pages)", len(G.nodes()))
+                with col2:
+                    st.metric("Edges (Rules)", len(G.edges()))
+                with col3:
+                    st.metric("Avg Connections", f"{sum(node_degrees)/len(node_degrees):.1f}")
+                
+                with st.expander("ℹ️ How to read this graph"):
+                    st.markdown("""
+                    **Graph Elements:**
+                    - **Nodes** = Web pages
+                    - **Edges** = Association rules (arrow direction shows: if A then B)
+                    - **Node size** = Number of connections (more connected = bigger)
+                    - **Node color** = Number of connections (darker = more connected)
+                    
+                    **Filters:**
+                    - **Minimum Lift**: Only show rules with lift above this value (stronger associations)
+                    - **Max Nodes**: Limit display to top N most connected pages
+                    """)
+            else:
+                st.warning("No nodes in the graph after filtering. Try lowering the minimum lift.")
+        else:
+            st.warning(f"No rules found with lift ≥ {min_lift_filter}. Try lowering the minimum lift.")
+    else:
+        st.warning("No rules available for network visualization.")
 
 
