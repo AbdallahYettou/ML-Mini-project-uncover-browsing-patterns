@@ -4,8 +4,10 @@ Cleans extracted log data by:
 - Removing file extensions (keeping only directories)
 - Removing query strings and fragments
 - Normalizing paths
-- Removing noise paths like /images, /icons, /htbin
+- Removing noise paths like /images, /icons, /htbin, /cgi-bin
+- Limiting path depth to avoid overly specific paths
 - Removing consecutive duplicates
+- Limiting session length for cleaner patterns
 """
 
 import re
@@ -28,7 +30,25 @@ NOISE_PATHS = {
     '/media',
 }
 
+# Prefixes that indicate noise paths
+NOISE_PREFIXES = (
+    '/images/',
+    '/icons/',
+    '/cgi-bin/',
+    '/htbin/',
+    '/static/',
+    '/assets/',
+    '/css/',
+    '/js/',
+    '/fonts/',
+    '/media/',
+)
 
+# Maximum path depth to keep (e.g., /shuttle/missions/sts-69 = depth 3)
+MAX_PATH_DEPTH = 3
+
+# Maximum session length (too long sessions add noise)
+MAX_SESSION_LENGTH = 25
 
 
 def is_noise_path(path):
@@ -42,8 +62,30 @@ def is_noise_path(path):
         return True
     
     # Check prefixes
- 
+    if path.startswith(NOISE_PREFIXES):
+        return True
+    
+    # Filter out cgi-bin imagemap paths (e.g., /cgi-bin/imagemap/countdown69,186)
+    if 'imagemap' in path.lower():
+        return True
+    
+    # Filter paths with commas (usually malformed or coordinates)
+    if ',' in path:
+        return True
+    
     return False
+
+
+def limit_path_depth(path, max_depth=MAX_PATH_DEPTH):
+    """
+    Limit path depth to avoid overly specific paths.
+    E.g., /shuttle/missions/sts-69/images → /shuttle/missions/sts-69
+    """
+    parts = path.split('/')
+    # parts[0] will be empty string for paths starting with /
+    if len(parts) > max_depth + 1:
+        return '/'.join(parts[:max_depth + 1])
+    return path
 
 
 def clean_path(path):
@@ -82,6 +124,14 @@ def is_valid_path(path):
     Filters out paths that don't represent meaningful navigation.
     """
     if not path or path == '/':
+        return False
+    
+    # Filter out paths that are just numbers (usually errors or coordinates)
+    if path.strip('/').isdigit():
+        return False
+    
+    # Filter out very short paths (less than 3 chars after /)
+    if len(path.strip('/')) < 3:
         return False
     
     return True
@@ -129,10 +179,16 @@ def main():
                 for path in paths:
                     cleaned = clean_path(path)
                     if is_valid_path(cleaned) and not is_noise_path(cleaned):
+                        # Apply path depth limiting
+                        cleaned = limit_path_depth(cleaned)
                         cleaned_paths.append(cleaned)
                 
-                # Remove consecutive duplicates
+                # Remove consecutive duplicates (after depth limiting, more may become duplicates)
                 cleaned_paths = remove_consecutive_duplicates(cleaned_paths)
+                
+                # Limit session length to avoid overly long sessions
+                if len(cleaned_paths) > MAX_SESSION_LENGTH:
+                    cleaned_paths = cleaned_paths[:MAX_SESSION_LENGTH]
                 
                 # Only keep sessions with at least 2 paths
                 if len(cleaned_paths) >= 2:

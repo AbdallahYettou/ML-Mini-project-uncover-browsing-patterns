@@ -35,13 +35,38 @@ The preprocessing converts the NASA HTTP server logs into session transactions s
 
 ### 2. Cleaning (`clean_extracted_data.py`)
 
+#### Path Normalization
 * Remove query strings and fragments (parts after `?` or `#`). (query string = text after `?` often used for parameters).
 * Normalize multiple slashes (`//`) to a single slash (`/`).
 * Remove trailing slashes (except root `/`).
 * If the request target looks like a file (basename contains `.`), use the parent directory (directory-level normalization). (basename = last part of the path)
-* Remove known noise/static directories such as `/images`, `/icons`, `/css`, `/js`, `/static`, `/assets`.
+
+#### Noise Path Filtering
+Remove known noise/static directories and patterns:
+* **Static resources**: `/images`, `/icons`, `/css`, `/js`, `/fonts`, `/media`, `/static`, `/assets`
+* **CGI paths**: `/cgi-bin`, `/htbin`, and any path containing `imagemap` (coordinate-based links)
+* **Malformed paths**: Paths containing commas (usually coordinate data or parsing errors)
+* **Numeric paths**: Paths that are just numbers (e.g., `283`, `224` - often errors)
+* **Short paths**: Paths with fewer than 3 characters (not meaningful navigation)
+
+#### Path Depth Limiting
+* Limit paths to **3 levels** maximum to avoid overly specific patterns.
+* Example: `/shuttle/missions/sts-69/images/photo.gif` → `/shuttle/missions/sts-69`
+* This improves pattern generalization and reduces noise from deep directory structures.
+
+#### Session Processing
 * Remove consecutive duplicate paths in a session (to ignore page refreshes).
-* Write sessions that contain at least **2 cleaned paths** to `cleaned_data.csv`. Preprocessing steps like these are common in web-usage mining. ([ResearchGate][3])
+* **Limit session length** to **25 pages** maximum (very long sessions add noise and can skew results).
+* Write sessions that contain at least **2 cleaned paths** to `cleaned_data.csv`.
+
+#### Preprocessing Results
+| Metric | Before Cleaning | After Cleaning |
+|--------|-----------------|----------------|
+| Total Sessions | 69,413 | 45,127 |
+| Avg Paths/Session | 22.31 | 6.78 |
+| Total Paths | 1,548,518 | 305,744 |
+
+Preprocessing steps like these are common in web-usage mining. ([ResearchGate][3])
 
 
 

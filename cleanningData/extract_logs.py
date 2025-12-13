@@ -36,7 +36,7 @@ def process_log_file(filename, limit=None):
 
 def main():
   
-    files = ['Data/Logs/access_log_Aug95', 'Data/Logs/access_log_Aug95']
+    files = ['Data/Logs/access_log_Aug95']  # Fixed: was duplicated
     output_file = 'Data/extractedAndcleanedData/extracted_logs.csv'
     all_sessions = {}
 
