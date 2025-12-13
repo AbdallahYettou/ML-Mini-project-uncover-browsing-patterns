@@ -364,7 +364,6 @@ st.sidebar.markdown("## 📊 Model Statistics")
 st.sidebar.metric("Apriori Rules", f"{len(apriori_rules):,}")
 st.sidebar.metric("FP-Growth Rules", f"{len(fp_rules):,}")
 st.sidebar.metric("ECLAT Rules", f"{len(eclat_rules):,}")
-st.sidebar.metric("Unique Paths", f"{len(all_paths):,}")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("## ⚙️ Settings")
