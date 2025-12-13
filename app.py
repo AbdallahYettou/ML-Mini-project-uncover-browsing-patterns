@@ -382,17 +382,17 @@ max_rules_display = st.sidebar.slider(
 # ======================== TABS ========================
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🔮 Prediction", 
-    "⚔️ Comparison", 
-    "🔵 Apriori Rules", 
-    "🟣 FP-Growth Rules",
-    "🟢 ECLAT Rules"
+    " Prediction", 
+    " Comparison", 
+    " Apriori Rules", 
+    " FP-Growth Rules",
+    " ECLAT Rules"
 ])
 
 # ======================== TAB 1: PREDICTION ========================
 
 with tab1:
-    st.markdown("## 🔮 Smart Page Prediction")
+    st.markdown("##  Smart Page Prediction")
     st.markdown("Enter pages a user has visited to predict their next destination.")
     
     col1, col2 = st.columns([2, 1])
@@ -424,7 +424,7 @@ with tab1:
     
     if selected_paths:
         st.markdown("---")
-        st.markdown("### 🎯 AI Predictions")
+        st.markdown("###  AI Predictions")
         
         predictions = get_predictions(selected_paths, rules_for_prediction, top_n)
         
@@ -480,12 +480,12 @@ with tab1:
 # ======================== TAB 2: COMPARISON ========================
 
 with tab2:
-    st.markdown("## ⚔️ Algorithm Battle")
+    st.markdown("##  Algorithm Battle")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("### 🔵 Apriori")
+        st.markdown("###  Apriori")
         if len(apriori_rules) > 0:
             st.metric("Total Rules", f"{len(apriori_rules):,}")
             st.metric("Avg Confidence", f"{apriori_rules['confidence'].mean():.3f}")
@@ -493,7 +493,7 @@ with tab2:
             st.metric("Max Lift", f"{apriori_rules['lift'].max():.3f}")
     
     with col2:
-        st.markdown("### 🟣 FP-Growth")
+        st.markdown("###  FP-Growth")
         if len(fp_rules) > 0:
             st.metric("Total Rules", f"{len(fp_rules):,}")
             st.metric("Avg Confidence", f"{fp_rules['confidence'].mean():.3f}")
@@ -501,7 +501,7 @@ with tab2:
             st.metric("Max Lift", f"{fp_rules['lift'].max():.3f}")
     
     with col3:
-        st.markdown("### 🟢 ECLAT")
+        st.markdown("###  ECLAT")
         if len(eclat_rules) > 0:
             # ECLAT rules may not always have confidence/lift columns depending on how they were exported
             conf_mean = eclat_rules['confidence'].mean() if 'confidence' in eclat_rules.columns else float('nan')
@@ -574,10 +574,10 @@ with tab2:
 # ======================== TAB 3: APRIORI RULES ========================
 
 with tab3:
-    st.markdown("## 🔵 Apriori Association Rules")
+    st.markdown("##  Apriori Association Rules")
     
     if len(apriori_rules) > 0:
-        st.markdown("### 📈 Support vs Confidence")
+        st.markdown("###  Support vs Confidence")
         plot_rules = apriori_rules.copy()
         plot_rules['antecedents_str'] = plot_rules['antecedents'].apply(lambda x: ', '.join(sorted(x)))
         plot_rules['consequents_str'] = plot_rules['consequents'].apply(lambda x: ', '.join(sorted(x)))
@@ -600,7 +600,7 @@ with tab3:
         )
         st.plotly_chart(fig, use_container_width=True)
         
-        st.markdown(f"### 📋 All Rules (showing {min(max_rules_display, len(apriori_rules)):,} of {len(apriori_rules):,})")
+        st.markdown(f"###  All Rules (showing {min(max_rules_display, len(apriori_rules)):,} of {len(apriori_rules):,})")
         rules_display = apriori_rules.head(max_rules_display).copy()
         rules_display['antecedents'] = rules_display['antecedents'].apply(lambda x: ', '.join(sorted(x)))
         rules_display['consequents'] = rules_display['consequents'].apply(lambda x: ', '.join(sorted(x)))
@@ -616,10 +616,10 @@ with tab3:
 # ======================== TAB 4: FP-GROWTH RULES ========================
 
 with tab4:
-    st.markdown("## 🟣 FP-Growth Association Rules")
+    st.markdown("## FP-Growth Association Rules")
     
     if len(fp_rules) > 0:
-        st.markdown("### 📈 Support vs Confidence")
+        st.markdown("###  Support vs Confidence")
         plot_rules_fp = fp_rules.copy()
         plot_rules_fp['antecedents_str'] = plot_rules_fp['antecedents'].apply(lambda x: ', '.join(sorted(x)))
         plot_rules_fp['consequents_str'] = plot_rules_fp['consequents'].apply(lambda x: ', '.join(sorted(x)))
@@ -642,7 +642,7 @@ with tab4:
         )
         st.plotly_chart(fig, use_container_width=True)
         
-        st.markdown(f"### 📋 All Rules (showing {min(max_rules_display, len(fp_rules)):,} of {len(fp_rules):,})")
+        st.markdown(f"###  All Rules (showing {min(max_rules_display, len(fp_rules)):,} of {len(fp_rules):,})")
         rules_display_fp = fp_rules.head(max_rules_display).copy()
         rules_display_fp['antecedents'] = rules_display_fp['antecedents'].apply(lambda x: ', '.join(sorted(x)))
         rules_display_fp['consequents'] = rules_display_fp['consequents'].apply(lambda x: ', '.join(sorted(x)))
@@ -658,10 +658,10 @@ with tab4:
 # ======================== TAB 5: ECLAT RULES ========================
 
 with tab5:
-    st.markdown("## 🟢 ECLAT Association Rules")
+    st.markdown("##  ECLAT Association Rules")
     
     if len(eclat_rules) > 0:
-        st.markdown("### 📈 Support vs Confidence")
+        st.markdown("###  Support vs Confidence")
         plot_rules_eclat = eclat_rules.copy()
         # only add string columns if antecedents/consequents exist
         if 'antecedents' in plot_rules_eclat.columns:
@@ -694,7 +694,7 @@ with tab5:
             )
             st.plotly_chart(fig, use_container_width=True)
         
-        st.markdown(f"### 📋 All Rules (showing {min(max_rules_display, len(eclat_rules)):,} of {len(eclat_rules):,})")
+        st.markdown(f"###  All Rules (showing {min(max_rules_display, len(eclat_rules)):,} of {len(eclat_rules):,})")
         rules_display_eclat = eclat_rules.head(max_rules_display).copy()
         if 'antecedents' in rules_display_eclat.columns:
             rules_display_eclat['antecedents'] = rules_display_eclat['antecedents'].apply(lambda x: ', '.join(sorted(x)))
