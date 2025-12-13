@@ -404,7 +404,7 @@ with tab1:
             horizontal=True
         )
         
-        rules_for_prediction = apriori_rules if algorithm == "Apriori" else (fp_rules if algorithm == "FP-Growth" else eclat_rules)
+        rules_for_prediction = apriori_rules if algorithm == "Apriori" else (fp_rules if algorithm == "FP-Growth" else (eclat_rules if algorithm == "ECLAT" else None))
         
         selected_paths = st.multiselect(
             "🔍 Select visited pages:",
@@ -503,14 +503,10 @@ with tab2:
     with col3:
         st.markdown("###  ECLAT")
         if len(eclat_rules) > 0:
-            # ECLAT rules may not always have confidence/lift columns depending on how they were exported
-            conf_mean = eclat_rules['confidence'].mean() if 'confidence' in eclat_rules.columns else float('nan')
-            lift_mean = eclat_rules['lift'].mean() if 'lift' in eclat_rules.columns else float('nan')
-            lift_max = eclat_rules['lift'].max() if 'lift' in eclat_rules.columns else float('nan')
             st.metric("Total Rules", f"{len(eclat_rules):,}")
-            st.metric("Avg Confidence", f"{conf_mean:.3f}")
-            st.metric("Avg Lift", f"{lift_mean:.3f}")
-            st.metric("Max Lift", f"{lift_max:.3f}")
+            st.metric("Avg Confidence", f"{eclat_rules['confidence'].mean():.3f}")
+            st.metric("Avg Lift", f"{eclat_rules['lift'].mean():.3f}")
+            st.metric("Max Lift", f"{eclat_rules['lift'].max():.3f}")
     
     st.markdown("---")
     
@@ -520,9 +516,7 @@ with tab2:
             'Metric': ['Total Rules', 'Avg Confidence', 'Avg Lift', 'Max Lift'],
             'Apriori': [len(apriori_rules), apriori_rules['confidence'].mean(), apriori_rules['lift'].mean(), apriori_rules['lift'].max()],
             'FP-Growth': [len(fp_rules), fp_rules['confidence'].mean(), fp_rules['lift'].mean(), fp_rules['lift'].max()],
-            'ECLAT': [len(eclat_rules), eclat_rules['confidence'].mean() if 'confidence' in eclat_rules.columns else float('nan'), 
-                      eclat_rules['lift'].mean() if 'lift' in eclat_rules.columns else float('nan'),
-                      eclat_rules['lift'].max() if 'lift' in eclat_rules.columns else float('nan')]
+            'ECLAT': [len(eclat_rules), eclat_rules['confidence'].mean(), eclat_rules['lift'].mean(), eclat_rules['lift'].max()],
         })
         
         fig = go.Figure()
@@ -562,14 +556,11 @@ with tab2:
     with col3:
         if len(eclat_rules) > 0:
             st.markdown("#### ECLAT Top 10")
-            # ECLAT exports may not have the exact same columns; try to display the common ones
-            columns_to_show = [c for c in ['antecedents', 'consequents', 'support', 'confidence', 'lift'] if c in eclat_rules.columns]
-            top_eclat = eclat_rules.head(10)[columns_to_show].copy()
-            if 'antecedents' in top_eclat.columns:
-                top_eclat['antecedents'] = top_eclat['antecedents'].apply(lambda x: ', '.join(sorted(x)))
-            if 'consequents' in top_eclat.columns:
-                top_eclat['consequents'] = top_eclat['consequents'].apply(lambda x: ', '.join(sorted(x)))
+            top_eclat = eclat_rules.nlargest(10, 'lift')[['antecedents', 'consequents', 'support', 'confidence', 'lift']].copy()
+            top_eclat['antecedents'] = top_eclat['antecedents'].apply(lambda x: ', '.join(sorted(x)))
+            top_eclat['consequents'] = top_eclat['consequents'].apply(lambda x: ', '.join(sorted(x)))
             st.dataframe(top_eclat, use_container_width=True, hide_index=True)
+    
 
 # ======================== TAB 3: APRIORI RULES ========================
 
