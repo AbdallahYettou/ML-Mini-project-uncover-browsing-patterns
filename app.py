@@ -4,6 +4,14 @@ import plotly.express as px
 import plotly.graph_objects as go
 import networkx as nx
 import re
+import os
+
+# MLOps imports - for production monitoring
+try:
+    from mlops.monitoring import log_prediction, get_monitor
+    MLOPS_ENABLED = True
+except ImportError:
+    MLOPS_ENABLED = False
 
 # Page configuration
 st.set_page_config(
@@ -366,6 +374,17 @@ st.sidebar.metric("FP-Growth Rules", f"{len(fp_rules):,}")
 st.sidebar.metric("ECLAT Rules", f"{len(eclat_rules):,}")
 
 st.sidebar.markdown("---")
+
+# MLOps Monitoring Toggle
+if MLOPS_ENABLED:
+    enable_monitoring = st.sidebar.checkbox("🔍 Enable MLOps Monitoring", value=False)
+    if enable_monitoring:
+        st.sidebar.success("📊 Predictions logged to W&B")
+else:
+    enable_monitoring = False
+    st.sidebar.info("MLOps monitoring not available")
+
+st.sidebar.markdown("---")
 st.sidebar.markdown("## ⚙️ Settings")
 
 max_possible = max(len(apriori_rules), len(fp_rules), len(eclat_rules), 1)
@@ -426,6 +445,20 @@ with tab1:
         st.markdown("###  AI Predictions")
         
         predictions = get_predictions(selected_paths, rules_for_prediction, top_n)
+        
+        # Log prediction to W&B if monitoring is enabled
+        if MLOPS_ENABLED and enable_monitoring and len(predictions) > 0:
+            try:
+                pred_list = [(row['Predicted Page'], row['Confidence']) 
+                            for _, row in predictions.head(10).iterrows()]
+                log_prediction(
+                    user_paths=list(selected_paths),
+                    predictions=pred_list,
+                    algorithm=algorithm.lower(),
+                    metadata={'top_n': top_n, 'num_results': len(predictions)}
+                )
+            except Exception as e:
+                pass  # Silently fail if monitoring has issues
         
         if len(predictions) > 0:
             col1, col2 = st.columns([1, 1])

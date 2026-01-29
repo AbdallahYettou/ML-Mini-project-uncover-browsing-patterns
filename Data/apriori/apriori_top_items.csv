@@ -1,11 +1,21 @@
-count
-61507
-50557
-23014
-22121
-21962
-20667
-18264
-16952
-15333
-12825
+support,itemsets
+0.6417000908546989,frozenset({'/history/apollo/images'})
+0.4967092871230084,frozenset({'/shuttle/missions/sts-69'})
+0.38376138453697345,frozenset({'/shuttle/countdown'})
+0.3578788751745075,"frozenset({'/shuttle/missions/sts-69', '/shuttle/countdown'})"
+0.32000797748576243,"frozenset({'/shuttle/missions/sts-69', '/history/apollo/images'})"
+0.3004188180025262,frozenset({'/shuttle/missions'})
+0.24468721607906574,"frozenset({'/shuttle/missions', '/history/apollo/images'})"
+0.20253949963436524,"frozenset({'/history/apollo/images', '/shuttle/countdown'})"
+0.19686662086998913,"frozenset({'/shuttle/missions/sts-69', '/history/apollo/images', '/shuttle/countdown'})"
+0.17647971281051256,frozenset({'/shuttle/technology/sts-newsref'})
+0.1634941387639329,"frozenset({'/shuttle/missions/sts-69', '/shuttle/missions'})"
+0.15429787045449508,frozenset({'/history'})
+0.14558911516387085,frozenset({'/shuttle/resources/orbiters'})
+0.14454761007822367,"frozenset({'/history/apollo/images', '/history'})"
+0.13705763733463336,frozenset({'/history/apollo'})
+0.13694683892126663,"frozenset({'/shuttle/missions/sts-69', '/shuttle/missions', '/history/apollo/images'})"
+0.13559509827819266,frozenset({'/shuttle/missions/sts-70'})
+0.12861479823608926,frozenset({'/facilities'})
+0.12797216743856227,"frozenset({'/history/apollo/images', '/history/apollo'})"
+0.1265761074301416,frozenset({'/shuttle/missions/sts-71'})

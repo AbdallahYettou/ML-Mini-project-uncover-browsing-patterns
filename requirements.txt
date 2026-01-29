@@ -7,3 +7,5 @@ mlxtend
 scikit-learn
 matplotlib
 seaborn
+wandb
+pyyaml

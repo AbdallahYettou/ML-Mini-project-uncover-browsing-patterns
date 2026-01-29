@@ -1,0 +1,25 @@
+# W&B MLOps Configuration for Web Usage Mining
+
+wandb:
+  project: "web-usage-mining-mlops"
+  entity: null  # Uses default W&B entity
+
+data:
+  raw_logs: "Data/Logs/"
+  processed: "Data/extractedAndcleanedData/"
+  
+training:
+  algorithms:
+    - apriori
+    - fpgrowth
+    - eclat
+  hyperparameters:
+    min_support: 0.01
+    min_confidence: 0.5
+    min_lift: 1.0
+    max_len: 10
+
+pipeline:
+  run_preprocessing: true
+  run_all_algorithms: true
+  register_best_model: true

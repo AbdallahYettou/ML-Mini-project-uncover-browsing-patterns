@@ -4,3 +4,6 @@ Data/Logs/
 Data/extractedAndcleanedData/
 repport.md
 per-repport.md
+wandb/
+__pycache__/
+*.pyc
